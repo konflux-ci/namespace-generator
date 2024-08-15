@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: namespace-generator-plugin
+  namespace: argocd
+data:
+  token: "$namespace-generator-key:key"
+  baseUrl: https://namespace-generator.argocd.svc.cluster.local
+  requestTimeout: "60"

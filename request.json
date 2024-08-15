@@ -1,0 +1,12 @@
+{
+    "applicationSetName": "app",
+    "input": {
+        "parameters": {
+            "labelSelector": {
+                "matchLabels": {
+                    "konflux.ci/type": "user"
+                }
+            }
+        }
+    }
+}
