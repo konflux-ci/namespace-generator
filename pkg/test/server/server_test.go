@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -26,7 +27,7 @@ import (
 	"github.com/konflux-ci/namespace-generator/pkg/test/utils"
 )
 
-func TestProvision(t *testing.T) {
+func TestNSGen(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Server Suite")
 }
@@ -87,12 +88,12 @@ func createNamespaces(k8sClient client.Client) {
 	createNS("ns3", nil)
 }
 
-var _ = Describe("simple test", func() {
+var _ = Describe("Test namespace-generator server", func() {
 	endpoint := "http://localhost:5000/api/v1/getparams.execute"
 	httpClient := &http.Client{}
 
-	Context("simple test context", func() {
-		It("simple spec", func() {
+	When("submitting a proper request", func() {
+		It("should succeed", func() {
 
 			generateRequest := &v1alpha1.GenerateRequest{
 				ApplicationSetName: "test-app",
@@ -131,8 +132,8 @@ var _ = Describe("simple test", func() {
 		})
 	})
 
-	Context("Request without a bearer token", func() {
-		It("Should return status 400", func() {
+	Context("request without a bearer token", func() {
+		It("should return status 400", func() {
 			request, err := http.NewRequest("POST", endpoint, nil)
 			Expect(err).NotTo(HaveOccurred())
 			//request.Header.Set("Authorization", "bearer passworddd")
@@ -142,14 +143,25 @@ var _ = Describe("simple test", func() {
 		})
 	})
 
-	Context("Request with a wrong bearer token", func() {
-		It("Should return status 401", func() {
+	Context("request with a wrong bearer token", func() {
+		It("should return status 401", func() {
 			request, err := http.NewRequest("POST", endpoint, nil)
 			Expect(err).NotTo(HaveOccurred())
 			request.Header.Set("Authorization", "bearer not a password")
 			response, err := httpClient.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+		})
+	})
+
+	Context("request with a broken body", func() {
+		It("should return status 400", func() {
+			request, err := http.NewRequest("POST", endpoint, strings.NewReader("{}"))
+			Expect(err).NotTo(HaveOccurred())
+			request.Header.Set("Authorization", "password")
+			response, err := httpClient.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 		})
 	})
 })
