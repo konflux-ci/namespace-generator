@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: example-app
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - plugin:
+        configMapRef:
+          name: namespace-generator-plugin
+        input:
+          parameters:
+            labelSelector:
+              matchLabels:
+                konflux.ci/type: user
+              matchExpressions:
+                - key: app.kubernetes.io/instance
+                  operator: DoesNotExist
+        requeueAfterSeconds: 30
+  syncPolicy:
+    # To be on the safe side, prevent an Application's child resources from being deleted,
+    # when the parent Application is deleted
+    preserveResourcesOnDeletion: true
+  template:
+    metadata:
+      name: "{{ .namespace }}-default-app"
+    spec:
+      project: default
+      source:
+        path: example/resources
+        repoURL: https://github.com/gbenhaim/namespace-generator
+        targetRevision: main
+      destination:
+        namespace: '{{.namespace}}'
+        server: https://kubernetes.default.svc
+      syncPolicy:
+        automated:
+          prune: false
+          selfHeal: false
+        retry:
+          limit: 10
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 3m
