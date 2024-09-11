@@ -11,7 +11,7 @@ metadata:
 rules:
 - apiGroups: [""]
   resources: ["namespaces"]
-  verbs: ["list"]
+  verbs: ["list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -47,22 +47,27 @@ spec:
     spec:
       serviceAccountName: namespace-generator
       containers:
-      - image: quay.io/gbenhaim0/namespace-generator:v2
+      - image: quay.io/gbenhaim0/namespace-generator:v10
+        env:
+          - name: NS_GEN_USE_HTTP
+            value: "true"
         livenessProbe:
           httpGet:
             path: /health
-            port: 5000
+            port: http
+            scheme: HTTP
           initialDelaySeconds: 15
           periodSeconds: 20
         name: manager
         ports:
         - containerPort: 5000
-          name: https
+          name: http
           protocol: TCP
         readinessProbe:
           httpGet:
             path: /health
-            port: 8081
+            port: http
+            scheme: HTTP
           initialDelaySeconds: 5
           periodSeconds: 10
         resources:
@@ -87,6 +92,7 @@ spec:
         secret:
           defaultMode: 420
           secretName: serving-certs
+          optional: true
       - name: key
         secret:
           defaultMode: 420
@@ -102,8 +108,8 @@ metadata:
   name: namespace-generator
 spec:
   ports:
-  - port: 443
+  - port: 80
     protocol: TCP
-    targetPort: https
+    targetPort: http
   selector:
     control-plane: namespace-generator
